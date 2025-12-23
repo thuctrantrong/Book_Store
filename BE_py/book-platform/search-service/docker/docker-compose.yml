@@ -1,0 +1,34 @@
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.14.0
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=VnBook$2025!Qx9
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - plugins.security.disabled=false
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    restart: unless-stopped
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+
+  dashboards:
+    image: opensearchproject/opensearch-dashboards:2.14.0
+    container_name: opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=["https://opensearch:9200"]
+      # dev-only: để dashboards kết nối SSL self-signed
+      - OPENSEARCH_SSL_VERIFICATIONMODE=none
+      # login dashboard bằng admin/pass giống opensearch
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=VnBook$2025!Qx9
+    depends_on:
+      - opensearch
+    restart: unless-stopped
+
+volumes:
+  opensearch-data:

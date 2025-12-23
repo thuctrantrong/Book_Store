@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Book Search UI (Suggest + Search)</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    body { margin: 0; background: #0b1020; color: #e7e9ee; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
+    h1 { font-size: 20px; margin: 0 0 16px; font-weight: 650; letter-spacing: .2px; }
+    .card { background: #121a33; border: 1px solid #23305a; border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: 1 1 auto; }
+    input[type="text"]{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid #2a3a6b;
+      background: #0e1530;
+      color: #e7e9ee;
+      outline: none;
+      font-size: 14px;
+    }
+    input[type="text"]:focus { border-color: #4f6cff; box-shadow: 0 0 0 3px rgba(79,108,255,.18); }
+    .btn {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #2a3a6b;
+      background: #1a2550;
+      color: #e7e9ee;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn:hover { background: #223063; }
+    .meta { font-size: 12px; color: #a9b2d4; margin-top: 10px; display:flex; gap:12px; flex-wrap:wrap; }
+    .meta code { background:#0e1530; border:1px solid #2a3a6b; padding:2px 6px; border-radius: 10px; }
+    .suggest-box{
+      position: relative;
+      margin-top: 8px;
+    }
+    .suggest-list{
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      background: #0e1530;
+      border: 1px solid #2a3a6b;
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .suggest-item{
+      padding: 10px 12px;
+      border-bottom: 1px solid #1b2750;
+      cursor: pointer;
+      display:flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+    .suggest-item:hover { background: #141d3e; }
+    .suggest-title{ font-weight: 650; }
+    .suggest-sub{ font-size: 12px; color:#a9b2d4; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; max-width: 48%; }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    select{
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid #2a3a6b;
+      background: #0e1530;
+      color: #e7e9ee;
+      outline: none;
+      font-size: 13px;
+    }
+    .results { margin-top: 18px; display:grid; gap: 10px; }
+    .item { display:flex; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid #23305a; background:#0e1530; }
+    .thumb { width: 56px; height: 76px; border-radius: 10px; background:#121a33; border:1px solid #23305a; flex: 0 0 auto; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .info { flex: 1 1 auto; min-width: 0; }
+    .title { font-weight: 700; }
+    .sub { font-size: 12px; color:#a9b2d4; margin-top: 4px; display:flex; gap:10px; flex-wrap:wrap; }
+    .chips { margin-top: 6px; display:flex; gap: 6px; flex-wrap:wrap; }
+    .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background:#121a33; border:1px solid #23305a; color:#cbd3f0; }
+    .status { font-size: 11px; padding: 2px 8px; border-radius: 999px; border:1px solid #23305a; }
+    .ok { background: rgba(46, 204, 113, .12); color:#bdf3cf; }
+    .bad { background: rgba(231, 76, 60, .12); color:#ffd1cb; }
+    .pager { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top: 12px; }
+    .small { font-size: 12px; color:#a9b2d4; }
+    .err { margin-top: 12px; color: #ffb3b3; font-size: 13px; }
+    .hint { margin-top: 12px; font-size: 12px; color:#a9b2d4; line-height: 1.4; }
+    a { color:#9db0ff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Book Search UI — Suggest + Search (không dấu + typo)</h1>
+
+    <div class="card">
+      <div class="row">
+        <div style="flex: 1 1 560px;">
+          <input id="q" type="text" placeholder="Gõ để gợi ý (vd: mat biec, nguyen nhat anh, harry poter)..." autocomplete="off" />
+          <div class="suggest-box">
+            <div id="suggestList" class="suggest-list"></div>
+          </div>
+        </div>
+        <button id="btnSearch" class="btn" style="flex:0 0 auto;">Search</button>
+      </div>
+
+      <div class="toolbar">
+        <select id="inStock">
+          <option value="">In stock: All</option>
+          <option value="true">In stock: True</option>
+          <option value="false">In stock: False</option>
+        </select>
+
+        <select id="sort">
+          <option value="relevance">Sort: Relevance</option>
+          <option value="newest">Sort: Newest</option>
+          <option value="rating_desc">Sort: Rating</option>
+          <option value="price_asc">Sort: Price ↑</option>
+          <option value="price_desc">Sort: Price ↓</option>
+        </select>
+
+        <select id="limit">
+          <option value="10">Limit: 10</option>
+          <option value="20" selected>Limit: 20</option>
+          <option value="50">Limit: 50</option>
+        </select>
+      </div>
+
+      <div class="meta">
+        <div>API base: <code id="apiBase"></code></div>
+        <div>Endpoints: <code>/books/suggest</code> <code>/books/search</code></div>
+      </div>
+
+      <div id="err" class="err" style="display:none;"></div>
+
+      <div class="pager">
+        <button id="prev" class="btn">◀ Prev</button>
+        <div class="small"><span id="stat">—</span></div>
+        <button id="next" class="btn">Next ▶</button>
+      </div>
+
+      <div id="results" class="results"></div>
+
+      <div class="hint">
+        <div><b>Gợi ý test:</b> thử <code>mat biec</code>, <code>nguyen nhat anh</code>, <code>harry poter</code>.</div>
+        <div>Nếu UI gọi API bị lỗi CORS, bật CORS trong FastAPI (mình có snippet bên dưới).</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ==== CONFIG ====
+  // Nếu bạn chạy UI qua file:// thì vẫn gọi được API, nhưng có thể vướng CORS tùy browser.
+  // Khuyên: phục vụ UI qua FastAPI /static (mình có hướng dẫn).
+  const API_BASE = (localStorage.getItem("API_BASE") || "http://127.0.0.1:8000").replace(/\/+$/,"");
+  document.getElementById("apiBase").textContent = API_BASE;
+
+  const $ = (id) => document.getElementById(id);
+  const qEl = $("q");
+  const suggestList = $("suggestList");
+  const resultsEl = $("results");
+  const errEl = $("err");
+  const statEl = $("stat");
+  const prevBtn = $("prev");
+  const nextBtn = $("next");
+  const btnSearch = $("btnSearch");
+  const inStockEl = $("inStock");
+  const sortEl = $("sort");
+  const limitEl = $("limit");
+
+  let page = 1;
+  let total = 0;
+  let lastQuery = "";
+
+  function showErr(msg){
+    errEl.style.display = msg ? "block" : "none";
+    errEl.textContent = msg || "";
+  }
+
+  function setSuggestVisible(visible){
+    suggestList.style.display = visible ? "block" : "none";
+  }
+
+  function escapeHtml(str){
+    return (str ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll("\"","&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function buildUrl(path, params){
+    const u = new URL(API_BASE + path);
+    Object.entries(params).forEach(([k,v])=>{
+      if(v === undefined || v === null || v === "") return;
+      u.searchParams.set(k, v);
+    });
+    return u.toString();
+  }
+
+  let suggestTimer = null;
+  async function fetchSuggest(){
+    const q = qEl.value.trim();
+    if(!q){ setSuggestVisible(false); suggestList.innerHTML=""; return; }
+    showErr("");
+    try{
+      const url = buildUrl("/books/suggest", { q, limit: 10 });
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`Suggest HTTP ${res.status}`);
+      const data = await res.json();
+      if(!Array.isArray(data)) throw new Error("Suggest response is not an array");
+      if(data.length === 0){ setSuggestVisible(false); return; }
+
+      suggestList.innerHTML = data.map(item => {
+        const t = escapeHtml(item.title || "");
+        const a = escapeHtml(item.author_name || "");
+        return `<div class="suggest-item" data-title="${escapeHtml(item.title||"")}">
+          <div class="suggest-title">${t}</div>
+          <div class="suggest-sub">${a}</div>
+        </div>`;
+      }).join("");
+
+      setSuggestVisible(true);
+    }catch(e){
+      setSuggestVisible(false);
+      showErr("Suggest lỗi: " + e.message);
+    }
+  }
+
+  qEl.addEventListener("input", ()=>{
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(fetchSuggest, 180);
+  });
+
+  suggestList.addEventListener("click", (ev)=>{
+    const item = ev.target.closest(".suggest-item");
+    if(!item) return;
+    const title = item.getAttribute("data-title") || "";
+    qEl.value = title;
+    setSuggestVisible(false);
+    doSearch(true);
+  });
+
+  document.addEventListener("click", (ev)=>{
+    if(!ev.target.closest(".suggest-box") && ev.target !== qEl){
+      setSuggestVisible(false);
+    }
+  });
+
+  qEl.addEventListener("keydown", (ev)=>{
+    if(ev.key === "Enter"){
+      setSuggestVisible(false);
+      doSearch(true);
+    }
+  });
+
+  btnSearch.addEventListener("click", ()=> doSearch(true));
+
+  prevBtn.addEventListener("click", ()=>{
+    if(page <= 1) return;
+    page -= 1;
+    doSearch(false);
+  });
+
+  nextBtn.addEventListener("click", ()=>{
+    const limit = parseInt(limitEl.value, 10);
+    const maxPage = Math.max(1, Math.ceil(total / limit));
+    if(page >= maxPage) return;
+    page += 1;
+    doSearch(false);
+  });
+
+  async function doSearch(resetPage){
+    const q = qEl.value.trim();
+    if(!q){ showErr("Nhập từ khoá để search."); return; }
+    showErr("");
+
+    if(resetPage){ page = 1; }
+    lastQuery = q;
+
+    const in_stock = inStockEl.value;
+    const sort = sortEl.value;
+    const limit = limitEl.value;
+
+    try{
+      resultsEl.innerHTML = "";
+      statEl.textContent = "Đang tìm...";
+      const url = buildUrl("/books/search", { q, page, limit, in_stock, sort });
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`Search HTTP ${res.status}`);
+      const data = await res.json();
+
+      total = data.total ?? 0;
+      const items = data.items ?? [];
+      const maxPage = Math.max(1, Math.ceil(total / parseInt(limit,10)));
+
+      statEl.textContent = `Tổng: ${total} • Page ${page}/${maxPage}`;
+
+      resultsEl.innerHTML = items.map(b=>{
+        const t = escapeHtml(b.title || "");
+        const a = escapeHtml(b.author_name || "");
+        const p = (b.price != null) ? Number(b.price).toLocaleString("vi-VN") + "₫" : "";
+        const rating = (b.avg_rating != null) ? `${b.avg_rating}★ (${b.rating_count ?? 0})` : "";
+        const stock = (b.in_stock) ? `<span class="status ok">in stock</span>` : `<span class="status bad">out</span>`;
+        const cats = Array.isArray(b.categories) ? b.categories.slice(0,6).map(c=>`<span class="chip">${escapeHtml(c)}</span>`).join("") : "";
+        const img = b.main_image_url ? `<img src="${escapeHtml(b.main_image_url)}" alt="">` : `<span style="font-size:11px;color:#a9b2d4">no img</span>`;
+        return `<div class="item">
+          <div class="thumb">${img}</div>
+          <div class="info">
+            <div class="title">${t}</div>
+            <div class="sub">
+              <span>${a}</span>
+              <span>${stock}</span>
+              <span>${escapeHtml(rating)}</span>
+              <span>${escapeHtml(p)}</span>
+            </div>
+            <div class="chips">${cats}</div>
+          </div>
+        </div>`;
+      }).join("");
+
+      if(items.length === 0){
+        resultsEl.innerHTML = `<div class="small">Không có kết quả.</div>`;
+      }
+    }catch(e){
+      showErr("Search lỗi: " + e.message + " • (Nếu là CORS, xem hướng dẫn bên dưới)");
+      statEl.textContent = "—";
+    }
+  }
+</script>
+</body>
+</html>

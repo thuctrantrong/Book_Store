@@ -1,0 +1,35 @@
+==== START Tue 12/23/2025 19:00:02.08 ==== 
+[1/4] Build TFIDF... 
+E:\TLCN\BE_py\book-platform\recommendation-service\recommend_app\services\content_based\build_cb_tfidf.py:77: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql(query, conn)
+Loading books...
+Num books: 3359
+Building TF-IDF...
+Computing similarities...
+Total rows to insert: 167950
+Saving to DB...
+Saved TF-IDF model files in model_data/
+Done.
+[2/4] Build CF_IMPLICIT... 
+E:\TLCN\BE_py\book-platform\recommendation-service\recommend_app\services\collab_filtering\build_cf_implicit.py:26: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql("""
+Purchase interactions: 11965
+Rows to insert: 159644
+Done CF_IMPLICIT.
+[3/4] Build CF_PURCHASE... 
+E:\TLCN\BE_py\book-platform\recommendation-service\recommend_app\services\collab_filtering\build_cf_purchase.py:26: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql("""
+Purchase interactions: 3026
+Rows to insert: 33242
+Done CF_PURCHASE.
+[4/4] Rebuild CF recommendations for active users... 
+[BatchCF] active_days=30, history_days=90, topn=50
+[BatchCF] active users: 303
+[BatchCF] progress 50/303 ok=50 fail=0
+[BatchCF] progress 100/303 ok=100 fail=0
+[BatchCF] progress 150/303 ok=150 fail=0
+[BatchCF] progress 200/303 ok=200 fail=0
+[BatchCF] progress 250/303 ok=250 fail=0
+[BatchCF] progress 300/303 ok=300 fail=0
+[BatchCF] done. ok=303 fail=0 time=61.9s
+==== END Tue 12/23/2025 19:02:10.75 ==== 
